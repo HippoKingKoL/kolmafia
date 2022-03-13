@@ -13,6 +13,8 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -70,7 +72,6 @@ import net.sourceforge.kolmafia.utilities.ByteBufferUtilities;
 import net.sourceforge.kolmafia.utilities.FileUtilities;
 import net.sourceforge.kolmafia.utilities.HttpUtilities;
 import net.sourceforge.kolmafia.utilities.InputFieldUtilities;
-import net.sourceforge.kolmafia.utilities.NaiveSecureSocketLayer;
 import net.sourceforge.kolmafia.utilities.PauseObject;
 import net.sourceforge.kolmafia.utilities.StringUtilities;
 import net.sourceforge.kolmafia.webui.BarrelDecorator;
@@ -112,7 +113,6 @@ public class GenericRequest implements Runnable {
     "devproxy.kingdomofloathing.com", "www.kingdomofloathing.com"
   };
 
-  public static final String KOL_IP = "69.16.150.211";
   public static String KOL_HOST = GenericRequest.SERVERS[1];
   public static URL KOL_SECURE_ROOT = null;
 
@@ -190,13 +190,6 @@ public class GenericRequest implements Runnable {
 
     systemProperties.remove("sun.net.client.defaultConnectTimeout");
     systemProperties.remove("sun.net.client.defaultReadTimeout");
-
-    if (Preferences.getBoolean("useNaiveSecureLogin")
-        || Preferences.getBoolean("connectViaAddress")) {
-      NaiveSecureSocketLayer.install();
-    } else {
-      NaiveSecureSocketLayer.uninstall();
-    }
 
     systemProperties.put("http.referer", "https://" + GenericRequest.KOL_HOST + "/game.php");
   }
@@ -278,11 +271,7 @@ public class GenericRequest implements Runnable {
     GenericRequest.KOL_HOST = GenericRequest.SERVERS[serverIndex];
 
     try {
-      if (Preferences.getBoolean("connectViaAddress")) {
-        GenericRequest.KOL_SECURE_ROOT = new URL("https", GenericRequest.KOL_IP, 443, "/");
-      } else {
-        GenericRequest.KOL_SECURE_ROOT = new URL("https", GenericRequest.KOL_HOST, 443, "/");
-      }
+      GenericRequest.KOL_SECURE_ROOT = new URL("https", GenericRequest.KOL_HOST, 443, "/");
     } catch (IOException e) {
       StaticEntity.printStackTrace(e);
     }
@@ -836,13 +825,27 @@ public class GenericRequest implements Runnable {
   }
 
   public static final String extractField(final String urlString, final String field) {
-    int start = urlString.indexOf(field);
+    int start = urlString.lastIndexOf(field);
     if (start == -1) {
       return null;
     }
 
     int end = urlString.indexOf("&", start);
     return (end == -1) ? urlString.substring(start) : urlString.substring(start, end);
+  }
+
+  public static final String extractValueOrDefault(final String urlString, final String field) {
+    return GenericRequest.extractValueOrDefault(urlString, field, "");
+  }
+
+  public static final String extractValueOrDefault(
+      final String urlString, final String field, String def) {
+    String value = GenericRequest.extractField(urlString, field);
+    if (value == null) {
+      return def;
+    }
+    int equals = value.indexOf("=");
+    return (equals == -1) ? value.trim() : value.substring(equals + 1).trim();
   }
 
   private boolean shouldUpdateDebugLog() {
@@ -2992,6 +2995,10 @@ public class GenericRequest implements Runnable {
     GenericRequest.setUserAgent(agent);
   }
 
+  public static final String getUserAgent() {
+    return GenericRequest.userAgent;
+  }
+
   public static final void setUserAgent(final String agent) {
     if (!agent.equals(GenericRequest.userAgent)) {
       GenericRequest.userAgent = agent;
@@ -3013,11 +3020,20 @@ public class GenericRequest implements Runnable {
   }
 
   public static synchronized void printRequestProperties(
+      final String URL, final HttpRequest request) {
+    printRequestProperties(URL, request.headers().map());
+  }
+
+  public static synchronized void printRequestProperties(
       final String URL, final HttpURLConnection formConnection) {
+    printRequestProperties(URL, formConnection.getRequestProperties());
+  }
+
+  private static synchronized void printRequestProperties(
+      final String URL, final Map<String, List<String>> requestProperties) {
     RequestLogger.updateDebugLog();
     RequestLogger.updateDebugLog("Requesting: " + URL);
 
-    Map<String, List<String>> requestProperties = formConnection.getRequestProperties();
     RequestLogger.updateDebugLog(requestProperties.size() + " request properties");
 
     for (Entry<String, List<String>> entry : requestProperties.entrySet()) {
@@ -3031,12 +3047,21 @@ public class GenericRequest implements Runnable {
     GenericRequest.printHeaderFields(this.requestURL(), this.formConnection);
   }
 
+  public static synchronized <T> void printHeaderFields(
+      final String URL, final HttpResponse<T> response) {
+    printHeaderFields(URL, response.headers().map());
+  }
+
   public static synchronized void printHeaderFields(
       final String URL, final HttpURLConnection formConnection) {
+    printHeaderFields(URL, formConnection.getHeaderFields());
+  }
+
+  private static synchronized void printHeaderFields(
+      final String URL, final Map<String, List<String>> headerFields) {
     RequestLogger.updateDebugLog();
     RequestLogger.updateDebugLog("Retrieved: " + URL);
 
-    Map<String, List<String>> headerFields = formConnection.getHeaderFields();
     RequestLogger.updateDebugLog(headerFields.size() + " header fields");
 
     for (Entry<String, List<String>> entry : headerFields.entrySet()) {

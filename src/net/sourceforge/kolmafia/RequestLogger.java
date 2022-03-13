@@ -28,7 +28,7 @@ public class RequestLogger extends NullStream {
   private static PrintStream traceStream = NullStream.INSTANCE;
 
   private static String lastURLString = "";
-  private static String previousUpdateString = "";
+  public static String previousUpdateString = "";
   private static boolean wasLastRequestSimple = false;
 
   private RequestLogger() {}
@@ -1158,6 +1158,12 @@ public class RequestLogger extends NullStream {
 
     if ((request instanceof LunarLunchRequest || isExternal)
         && LunarLunchRequest.registerRequest(urlString)) {
+      RequestLogger.wasLastRequestSimple = false;
+      return;
+    }
+
+    if ((request instanceof MallSearchRequest || isExternal)
+        && MallSearchRequest.registerRequest(urlString)) {
       RequestLogger.wasLastRequestSimple = false;
       return;
     }

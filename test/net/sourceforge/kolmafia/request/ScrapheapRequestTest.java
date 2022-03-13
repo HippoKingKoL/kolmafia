@@ -1,6 +1,7 @@
 package net.sourceforge.kolmafia.request;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -12,7 +13,7 @@ import net.sourceforge.kolmafia.session.ChoiceManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class ScrapheapRequestTest extends RequestTestBase {
+public class ScrapheapRequestTest {
 
   @BeforeEach
   protected void initEach() {
@@ -65,8 +66,9 @@ public class ScrapheapRequestTest extends RequestTestBase {
           "robot_potions",
           "robot_hp2"
         };
+
     var actual = Preferences.getString("youRobotCPUUpgrades").split(",");
 
-    assertArrayEquals(expected, actual);
+    assertThat(actual, arrayContainingInAnyOrder(expected));
   }
 }

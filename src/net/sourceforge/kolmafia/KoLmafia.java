@@ -23,7 +23,6 @@ import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import net.java.dev.spellcast.utilities.ActionPanel;
-import net.java.dev.spellcast.utilities.DataUtilities;
 import net.java.dev.spellcast.utilities.JComponentUtilities;
 import net.sourceforge.kolmafia.AdventureResult.AdventureLongCountResult;
 import net.sourceforge.kolmafia.KoLConstants.CraftingType;
@@ -77,6 +76,7 @@ import net.sourceforge.kolmafia.request.QuantumTerrariumRequest;
 import net.sourceforge.kolmafia.request.QuestLogRequest;
 import net.sourceforge.kolmafia.request.RelayRequest;
 import net.sourceforge.kolmafia.request.RichardRequest;
+import net.sourceforge.kolmafia.request.ScrapheapRequest;
 import net.sourceforge.kolmafia.request.SpelunkyRequest;
 import net.sourceforge.kolmafia.request.StandardRequest;
 import net.sourceforge.kolmafia.request.StorageRequest;
@@ -102,6 +102,7 @@ import net.sourceforge.kolmafia.session.ResultProcessor;
 import net.sourceforge.kolmafia.session.TurnCounter;
 import net.sourceforge.kolmafia.session.ValhallaManager;
 import net.sourceforge.kolmafia.session.VoteMonsterManager;
+import net.sourceforge.kolmafia.session.YouRobotManager;
 import net.sourceforge.kolmafia.swingui.AdventureFrame;
 import net.sourceforge.kolmafia.swingui.DescriptionFrame;
 import net.sourceforge.kolmafia.swingui.GearChangeFrame;
@@ -409,16 +410,6 @@ public abstract class KoLmafia {
       UIManager.put("ProgressBar.background", Color.lightGray);
       UIManager.put("ProgressBar.selectionBackground", Color.black);
     }
-
-    tab.CloseTabPaneEnhancedUI.selectedA =
-        DataUtilities.toColor(Preferences.getString("innerTabColor"));
-    tab.CloseTabPaneEnhancedUI.selectedB =
-        DataUtilities.toColor(Preferences.getString("outerTabColor"));
-
-    tab.CloseTabPaneEnhancedUI.notifiedA =
-        DataUtilities.toColor(Preferences.getString("innerChatColor"));
-    tab.CloseTabPaneEnhancedUI.notifiedB =
-        DataUtilities.toColor(Preferences.getString("outerChatColor"));
   }
 
   private static void checkDataOverrides() {
@@ -747,22 +738,17 @@ public abstract class KoLmafia {
     } else if (KoLCharacter.isPlumber()) {
       KoLCharacter.resetCurrentPP();
     } else if (KoLCharacter.inRobocore()) {
-      RequestThread.postRequest(
-          new GenericRequest("place.php?whichplace=scrapheap&action=sh_configure"));
+      YouRobotManager.reset();
+      RequestThread.postRequest(new ScrapheapRequest("sh_configure"));
       RequestThread.postRequest(new GenericRequest("choice.php?whichchoice=1445&show=cpus"));
     }
 
     // Refresh fire levels
     WildfireCampRequest.refresh();
 
-    if (!(KoLCharacter.inAxecore()
-        || KoLCharacter.isJarlsberg()
-        || KoLCharacter.isSneakyPete()
-        || KoLCharacter.inBondcore()
-        || KoLCharacter.isVampyre()
-        || KoLCharacter.isEd()
-        || KoLCharacter.inPokefam()
-        || KoLCharacter.inQuantum())) {
+    if (KoLCharacter.getPath().canUseFamiliars()
+        && !KoLCharacter.inPokefam()
+        && !KoLCharacter.inQuantum()) {
       // Retrieve the Terrarium
       RequestThread.postRequest(new FamiliarRequest());
     }

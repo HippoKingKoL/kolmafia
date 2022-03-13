@@ -15358,13 +15358,20 @@ public abstract class ChoiceManager {
     String text = request.responseText;
     ChoiceManager.lastChoice = ChoiceManager.extractChoice(text);
 
-    if (ChoiceManager.lastChoice == 0) {
-      // choice.php did not offer us any choices and we couldn't work out which choice it was.
-      // This happens if taking a choice gives a response with a "next" link to choice.php.
-      ChoiceManager.lastDecoratedResponseText =
-          RequestEditorKit.getFeatureRichHTML(request.getURLString(), text);
-      return;
-    }
+        if ( ChoiceManager.lastChoice == 0 )
+        {
+            if (request instanceof EdBaseRequest) {
+                KoLmafia.updateDisplay("Ed servant bug detected. Attempting to fix.");
+                RequestThread.postRequest( new GenericRequest( "choice.php?forceoption=1", false ) );
+                //~ KoLmafia.updateDisplay("Fix attempted, rerunning door request.");
+                //~ RequestThread.postRequest( new EdBaseRequest( "edbase_door", true ) );
+                return;
+            }
+            // choice.php did not offer us any choices and we couldn't work out which choice it was.
+            // This happens if taking a choice gives a response with a "next" link to choice.php.
+            ChoiceManager.lastDecoratedResponseText = RequestEditorKit.getFeatureRichHTML( request.getURLString(), text );
+            return;
+        }
 
     SpadingManager.processChoiceVisit(ChoiceManager.lastChoice, text);
 
